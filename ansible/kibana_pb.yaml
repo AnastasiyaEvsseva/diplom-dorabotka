@@ -1,0 +1,48 @@
+---
+
+- name: Install Kibana
+  hosts: kibana_server
+  become: yes
+  vars:
+   - my_kibana_password: !vault |
+        $ANSIBLE_VAULT;1.1;AES256
+	39303539356635636466396331323930626435363565323838316364323664656465396230396434
+	3366646233623831666331363231346130626266313765380a376565343437393566356639373463
+	36353565643734373231386333666362613563326337353630383063393438396564323333333331
+	3139636365306335360a663635653830616365616130616138336161363562646439363666326336
+	33616166313866373030343531346438316430346563343335346331663331636164
+
+  tasks:
+  - name: Get Kibana
+    ansible.builtin.get_url:
+      url: https://mirror.yandex.ru/mirrors/elastic/7/pool/main/k/kibana/kibana-7.17.9-amd64.deb
+      dest: /home/admin/
+
+  - name: Install Kibana
+    apt:
+      deb: /home/admin/kibana-7.17.9-amd64.deb
+
+  - name: Systemctl daemon reload
+    systemd:
+      daemon_reload: true
+      name: kibana.service
+      state: started
+
+  - name: Create conf-file #with password
+    copy:
+      dest: /etc/kibana/kibana.yml
+      mode: 0644
+      owner: root
+      group: kibana
+      content: |
+       server.port: 5601
+       server.host: "0.0.0.0"
+       elasticsearch.hosts: ["http://192.168.1.21:9200"]
+       elasticsearch.username: "kibana"
+       elasticsearch.password: "{{ my_kibana_password }}"
+
+  - name: Restart Kibana
+    systemd:
+      name: kibana.service
+      enabled: true
+      state: restarted
