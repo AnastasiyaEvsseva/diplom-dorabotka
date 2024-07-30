@@ -1,0 +1,21 @@
+---
+# tasks file for nginx
+
+- name: "Install nginx"
+  apt:
+   name: nginx
+   update_cache: yes
+   state: present
+
+- name: Customize index.html
+  template:
+    force: true
+    src: "{{ src_index_templates }}"
+    dest: "{{ dest_index }}"
+    mode: "0755"
+
+- name: "Restart Nginx"
+  service:
+    name: nginx
+    enabled: true
+    state: restarted
